@@ -1,0 +1,17 @@
+server:
+  port: ${SERVER_PORT:8080}
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${POSTGRES_DB:fleet}
+    username: ${POSTGRES_USER:fleet}
+    password: ${POSTGRES_PASSWORD:fleet-local}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+fleet:
+  cors-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+  simulation:
+    host: ${SIMULATION_HOST:localhost}
+    port: ${SIMULATION_PORT:50051}
+    deadline-ms: ${SIMULATION_DEADLINE_MS:1500}

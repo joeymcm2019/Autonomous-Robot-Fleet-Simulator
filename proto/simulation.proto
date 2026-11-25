@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package fleet.simulation.v1;
+option java_package = "com.fleet.simulation.v1";
+option java_multiple_files = true;
+
+message Position {
+  int32 x = 1;
+  int32 y = 2;
+}
+
+enum RobotStatus {
+  ROBOT_STATUS_UNSPECIFIED = 0;
+  IDLE = 1;
+  MOVING = 2;
+  CHARGING = 3;
+  ERROR = 4;
+}
+
+message Robot {
+  string id = 1;
+  Position position = 2;
+  int32 heading_degrees = 3;
+  int32 battery_percent = 4;
+  RobotStatus status = 5;
+}
+
+message SimulationStatus {
+  int64 tick = 1;
+  bool running = 2;
+  int32 grid_width = 3;
+  int32 grid_height = 4;
+}
+
+message HealthRequest {}
+message HealthResponse { bool healthy = 1; }
+message GetRobotsRequest {}
+message GetRobotsResponse { repeated Robot robots = 1; }
+message GetSimulationStatusRequest {}
+message GetSimulationStatusResponse { SimulationStatus status = 1; }
+
+service SimulationService {
+  rpc CheckHealth(HealthRequest) returns (HealthResponse);
+  rpc GetRobots(GetRobotsRequest) returns (GetRobotsResponse);
+  rpc GetSimulationStatus(GetSimulationStatusRequest) returns (GetSimulationStatusResponse);
+}

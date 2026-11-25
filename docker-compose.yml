@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fleet}
+      POSTGRES_USER: ${POSTGRES_USER:-fleet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fleet-local}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - fleet-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  simulation-engine:
+    build:
+      context: .
+      dockerfile: services/simulation-engine/Dockerfile
+    ports:
+      - "127.0.0.1:${SIMULATION_HOST_PORT:-50051}:50051"
+    healthcheck:
+      test: ["CMD", "simulation-engine", "--health-check"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  fleet-api:
+    build:
+      context: .
+      dockerfile: services/fleet-api/Dockerfile
+    environment:
+      DB_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-fleet}
+      POSTGRES_USER: ${POSTGRES_USER:-fleet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fleet-local}
+      SIMULATION_HOST: simulation-engine
+      SIMULATION_DEADLINE_MS: ${SIMULATION_DEADLINE_MS:-1500}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:${DASHBOARD_HOST_PORT:-5173},http://127.0.0.1:${DASHBOARD_HOST_PORT:-5173}}
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      simulation-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+  dashboard:
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+    ports:
+      - "127.0.0.1:${DASHBOARD_HOST_PORT:-5173}:80"
+    depends_on:
+      fleet-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  fleet-postgres:
